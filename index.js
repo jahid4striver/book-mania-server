@@ -17,21 +17,18 @@ const client = new MongoClient(uri, {
 
 const bootstrap = async () => {
   try {
-    const db = client.db('books-mania');
+    const db = client.db('Books-Mania');
     const bookCollection = db.collection('books');
 
     app.get('/books', async (req, res) => {
       const cursor = bookCollection.find({});
-      const book = await cursor.toArray();
-
+      const book = await cursor.sort({ $natural: -1 }).toArray();
       res.send({ status: true, data: book });
     });
 
     app.post('/book', async (req, res) => {
       const book = req.body;
-
       const result = await bookCollection.insertOne(book);
-
       res.send(result);
     });
 
@@ -39,6 +36,18 @@ const bootstrap = async () => {
       const id = req.params.id;
       const result = await bookCollection.findOne({ _id: ObjectId(id) });
       console.log(result);
+      res.send(result);
+    });
+
+    app.put('/book/:id', async (req, res) => {
+      const id = req.params.id;
+      const book=req.body;
+      const filter={_id:ObjectId(id)}
+      const options={upsert:true};
+      const updateDoc={
+        $set:book
+      }
+      const result = await bookCollection.updateOne(filter,updateDoc,options);
       res.send(result);
     });
 
