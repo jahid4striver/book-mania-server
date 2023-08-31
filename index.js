@@ -19,6 +19,7 @@ const bootstrap = async () => {
   try {
     const db = client.db('Books-Mania');
     const bookCollection = db.collection('books');
+    const wishlistCollection = db.collection('wishlist');
 
     app.get('/books', async (req, res) => {
       const cursor = bookCollection.find({});
@@ -58,47 +59,47 @@ const bootstrap = async () => {
       res.send(result);
     });
 
+    app.post('/wishlist', async (req, res) => {
+      const wishlist = req.body;
+      const result = await wishlistCollection.insertOne(wishlist);
+      res.send(result);
+    });
+
+    app.get('/wishlist/:id', async (req, res) => {
+      const id = req.params.id;
+      const result = await wishlistCollection.findOne({ _id: ObjectId(id) });
+      res.send(result);
+    });
+
+    app.put('/wishlist/:id', async (req, res) => {
+      const id = req.params.id;
+      const wishlist = req.body;
+      const filter = { _id: ObjectId(id) }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: wishlist
+      }
+      const result = await wishlistCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    app.delete('/wishlist/:id', async (req, res) => {
+      const id = req.params.id;
+      const result = await wishlistCollection.deleteOne({ _id: ObjectId(id) });
+      res.send(result);
+    });
+
     app.post('/review/:id', async (req, res) => {
       const bookId = req.params.id;
       const review = req.body.review;
-      const result = await bookCollection.updateOne({ _id: ObjectId(bookId) }, { $push: { reviews: review } }
+      const reviewdBy = req.body.reviewdBy;
+      const result = await bookCollection.updateOne({ _id: ObjectId(bookId) }, { $push: { reviews: {review, reviewdBy} } }
       );
       res.send(result);
     });
 
-    app.get('/review/:id', async (req, res) => {
-      const bookId = req.params.id;
-      const result = await bookCollection.findOne(
-        { _id: ObjectId(bookId) },
-        { projection: { _id: 0, comments: 1 } }
-      );
 
-      if (result) {
-        res.json(result);
-      } else {
-        res.status(404).json({ error: 'book not found' });
-      }
-    });
 
-    app.post('/user', async (req, res) => {
-      const user = req.body;
-
-      const result = await userCollection.insertOne(user);
-
-      res.send(result);
-    });
-
-    app.get('/user/:email', async (req, res) => {
-      const email = req.params.email;
-
-      const result = await userCollection.findOne({ email });
-
-      if (result?.email) {
-        return res.send({ status: true, data: result });
-      }
-
-      res.send({ status: false });
-    });
   } finally {
   }
 };
@@ -110,5 +111,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`Book Mania app listening on port ${port}`);
 });
